@@ -1,0 +1,416 @@
+#region Using declarations
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Xml.Serialization;
+using NinjaTrader.Cbi;
+using NinjaTrader.Gui;
+using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.SuperDom;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.Data;
+using NinjaTrader.NinjaScript;
+using NinjaTrader.Core.FloatingPoint;
+using NinjaTrader.NinjaScript.DrawingTools;
+#endregion
+
+//This namespace holds Indicators in this folder and is required. Do not change it. 
+namespace NinjaTrader.NinjaScript.Indicators.DS
+{
+	public class test1 : Indicator
+	{
+
+		protected override void OnStateChange()
+		{
+			if (State == State.SetDefaults)
+			{
+				Description									= @"test1 haha";
+				Name										= "test1";
+				Calculate									= Calculate.OnBarClose;
+				IsOverlay									= true;
+				DisplayInDataBox							= true;
+				DrawOnPricePanel							= true;
+				DrawHorizontalGridLines						= true;
+				DrawVerticalGridLines						= true;
+				PaintPriceMarkers							= true;
+				ScaleJustification							= NinjaTrader.Gui.Chart.ScaleJustification.Right;
+				//Disable this property if your indicator requires custom values that cumulate with each new market data event. 
+				//See Help Guide for additional information.
+				IsSuspendedWhileInactive					= true;
+				IsLoadWeekly 								= true;
+				IsLoadMonthly 								= true;
+				IsLoadFiveDay 								= true;
+			}
+			else if (State == State.Configure)
+			{
+			}
+			else if (State == State.DataLoaded){
+			}
+		}
+
+		#region Properties
+		[NinjaScriptProperty]
+		[Display(Name="Is Load Weekly", Description="Is Load Weekly", Order=2, GroupName="Parameters")]
+		public bool IsLoadWeekly
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Display(Name="Is Load Monthly", Description="Is Load Monthly", Order=1, GroupName="Parameters")]
+		public bool IsLoadMonthly
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Display(Name="Is Load 5 Day", Description="Is Load 5 Day", Order=3, GroupName="Parameters")]
+		public bool IsLoadFiveDay
+		{ get; set; }
+		#endregion
+		protected override void OnBarUpdate()
+		{
+			//Add your custom indicator logic here.
+			//if(CurrentBar < 10) return;
+//			FibonacciRetracements  fib1 = Draw.FibonacciRetracements(this, "fib1", true, -11, 4458, -1, 4358);
+//			fib1.PriceLevels = GetPriceLevels(Brushes.SteelBlue);
+//			fib1.TextLocation = TextLocation.ExtremeRight;
+//			FibonacciRetracements  fib2 = Draw.FibonacciRetracements(this, "fib2", true, -30, 4500, -1, 4300);
+//			fib2.PriceLevels = GetPriceLevels(Brushes.Orange);
+//			fib2.TextLocation = TextLocation.ExtremeRight;
+//			FibonacciRetracements  fib3 = Draw.FibonacciRetracements(this, "fib3", true, -30, 4623, -1, 4367);
+//			fib3.PriceLevels = GetPriceLevels(Brushes.Purple);
+//			fib3.TextLocation = TextLocation.ExtremeRight;
+//			Draw.Text(this, "text1", "R1", -10, 4365.0, Brushes.SteelBlue);
+//			Draw.Line(this, "tag1", false, -1, 4358.0, -10, 4358.0, Brushes.SteelBlue, DashStyleHelper.Solid, 3);
+//			DrawTextLine("R1",-1,-10,Brushes.SteelBlue,DashStyleHelper.Solid,4358.0);
+//			DrawTextLine("R2",-1,-10,Brushes.SteelBlue,DashStyleHelper.Solid,4368.0);
+			//DrawTextLine("ZX",-1,-10,Brushes.SteelBlue,DashStyleHelper.Solid,4657);
+//			DrawLines("W", 4655, 4704, -1, -11,Brushes.SteelBlue);
+//			DrawLines("5D",4600, 4678, -1, -31,Brushes.Orange);
+//			DrawLines("M", 4633, 4689, -1, -31,Brushes.Purple);
+//			Log("2021-01-01 is the "+GetWeekOfYear(new DateTime(2021,1,1))+" week of year", LogLevel.Information);
+//			Log("2021-01-10 is the "+GetWeekOfYear(new DateTime(2021,1,10))+" week of year", LogLevel.Information);
+			if(IsLoadWeekly){
+				DrawLinesByFrequency(Frequency.W);
+			}
+			if(IsLoadFiveDay){
+				DrawLinesByFrequency(Frequency.FiveD);
+			}
+			if(IsLoadMonthly){
+				DrawLinesByFrequency(Frequency.M);
+			}
+			
+		}
+		
+//		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+//          {
+// 			 base.OnRender(chartControl, chartScale);
+//             // loop through only the rendered bars on the chart
+//  			for(int barIndex = ChartBars.FromIndex; barIndex <= ChartBars.ToIndex; barIndex++)
+//  				{
+//                    // get the time stamp at the selected bar index value
+//    				DateTime timeValue = Bars.GetTime(barIndex);
+//                    Log("Bar #" + barIndex + " time stamp is " + timeValue, LogLevel.Information);
+//               }
+//         }
+		
+		private void DrawLinesByFrequency(Frequency frequency){
+			PriceInfo info = null;
+			switch(frequency){
+				case Frequency.W:
+					info = GetWeeklyPriceInfo();
+					break;
+				case Frequency.FiveD:
+					info = Get5DPriceInfo();
+					break;
+				case Frequency.M:
+					info = GetMonthlyPriceInfo();
+					break;
+			}
+			if(info!=null){
+				DrawLines(info.PlotName, info.Low, info.High, info.StartBar, info.EndBar,info.Color);
+			}
+		}
+		
+		private PriceInfo GetWeeklyPriceInfo(){
+			Log("CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			Log("CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
+			if(firstBarTime.DayOfWeek == DayOfWeek.Monday && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
+				try {
+						
+			//			DateTime test = Bars.GetTime(-1);
+			//			Log("CurrentBar:" + CurrentBar+ " -ChartBars.ToIndex: " + ChartBars.ToIndex , LogLevel.Information);
+						KeyValuePair<DateTime,DateTime> dateRange = GetPreviousWeekStartEndDate(firstBarTime);
+						KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
+						
+						int current = 0;
+					    int numOfBar = indexes.Value-indexes.Key + 1;
+						double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
+						double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
+						Log("CurrentBar:" + CurrentBar +" Min of Last Week: " + min + "Max Last Week: "+ max, LogLevel.Information);
+						
+	//				    KeyValuePair<int,int> indexes2= GetBarIndexRangeByTimeRange(dateRange.Key,dateRange.Value);
+	//					double min2 = MIN(Low, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
+	//					double max2 = MAX(High, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
+	//					Log("CurrentBar2:" + CurrentBar +" Min of Last Week: " + min2 + "Max Last Week: "+ max2, LogLevel.Information);
+					return new PriceInfo (Frequency.W.ToString() + GetWeekOfYear(firstBarTime),  min, max, 0, -(numOfBar-1), Brushes.SteelBlue);
+				} catch(IndexOutOfRangeException ex){
+					Log("CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
+					return null;
+				}catch(Exception ex){
+					Log("CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
+					return null;
+				}
+			}
+		return null;
+		}
+		
+		private string GetWeekOfYear(DateTime dt){
+		 DateTime firstDayOfYear = new DateTime(dt.Year,1,1);
+		 int firstDayOfWeek = (int)firstDayOfYear.DayOfWeek;
+		 int dayOfYear = firstDayOfYear.DayOfYear;
+		 int dtDayOfYear = dt.DayOfYear;
+		 int firstWeekDays = 7-(int)firstDayOfWeek;
+		 int weekOfYear = (dtDayOfYear <= firstWeekDays) ? 1 :  ((dtDayOfYear - firstWeekDays) / 7 + 2);
+		 return dt.Year + "_" + weekOfYear;
+		}
+		
+//		private KeyValuePair<int,int> GetBarIndexRangeByTimeRange(DateTime dtFrom, DateTime dtTo){
+//			DateTime currentDateTime = Bars.GetTime(CurrentBar);
+//			int periodInMins = GetPeriodInMins();
+//			int dfFrom = (int)(currentDateTime - dtFrom).TotalMinutes;
+//			int fromIndex = CurrentBar - dfFrom/periodInMins;
+			
+//			int dfTo = (int)(currentDateTime - dtTo).TotalMinutes;
+//			int toIndex = CurrentBar - dfTo/periodInMins;
+//			Log("CurrentBar2: "+CurrentBar+ "df from" + dfFrom + "df To" + dfTo+" fromIndex:"+ fromIndex +" periodInMins:"+ periodInMins+ " toIndex:"+ toIndex, LogLevel.Information);
+			
+//			if(fromIndex<0 || toIndex<0){
+//				throw new IndexOutOfRangeException(" Chart out of index");
+//			}
+			
+//			DateTime t1 = Bars.GetTime(fromIndex);
+//			DateTime t2 = Bars.GetTime(toIndex);
+//			Log("CurrentBar2: "+CurrentBar+" Last Week Begin Index: " + fromIndex + "Last Week End index: "+toIndex+" Last Week begin Index DateTime: " + t1 + " Last week end index DateTime: " + t2, LogLevel.Information);
+//			return new KeyValuePair<int,int> (fromIndex, toIndex);
+//		}
+		
+//		private int GetPeriodInMins(){
+//			switch (BarsPeriod.BarsPeriodType){
+//				case BarsPeriodType.Minute: 
+//					return BarsPeriod.Value;
+//				case BarsPeriodType.Day:
+//					return BarsPeriod.Value * 24 * 60;
+//				default:
+//					Log("Not support period type:" + BarsPeriod.BarsPeriodType, LogLevel.Error);
+//					throw new Exception("Period type not support");
+//					break;
+//			}
+//		}
+		
+		private KeyValuePair<DateTime,DateTime> GetPreviousWeekStartEndDate(DateTime currentDateTime){
+			int dw = (int)currentDateTime.DayOfWeek;
+			Log("CurrentBar:" + CurrentBar+ " Current Datetime: " + currentDateTime , LogLevel.Information);
+			
+			DateTime lastMonday = currentDateTime.AddDays(-(dw+6));
+			DateTime nextMonday = lastMonday.AddDays(7);
+			DateTime lastWeekBegin = new DateTime(lastMonday.Year, lastMonday.Month, lastMonday.Day, 0, 0, 0);
+			DateTime lastWeekEnd = new DateTime(nextMonday.Year, nextMonday.Month, nextMonday.Day, 0, 0, 0);
+			Log("CurrentBar:" + CurrentBar+ " lastWeekBegin: " + lastWeekBegin + "lastWeekEnd: "+lastWeekEnd, LogLevel.Information);
+			return new KeyValuePair<DateTime,DateTime>(lastWeekBegin,lastWeekEnd);
+		}
+		
+		private KeyValuePair<int,int> GetBarIndexByDateTime(KeyValuePair<DateTime,DateTime> dateRange){
+			int beginIndex = Bars.GetBar(dateRange.Key);
+			int endIndex = Bars.GetBar(dateRange.Value);
+			if(endIndex < 0) {
+				throw new IndexOutOfRangeException(" Chart out of index");
+			}
+			DateTime t1 = Bars.GetTime(beginIndex);
+			DateTime t2 = Bars.GetTime(endIndex-1);
+			Log("CurrentBar: "+CurrentBar+" Last Week Begin Index: " + beginIndex + "Last Week End index: "+endIndex+" Last Week Begin Index DateTime: " + t1 + " Last Week End index DateTime: " + t2, LogLevel.Information);
+			return new KeyValuePair<int,int>(beginIndex,endIndex);
+		}
+		
+		
+		private PriceInfo Get5DPriceInfo(){
+			return new PriceInfo(Frequency.FiveD.ToString(), 4600, 4678, -1, -31,  Brushes.Orange);
+		}
+		
+		private PriceInfo GetMonthlyPriceInfo(){
+			return new PriceInfo( Frequency.M.ToString(),  4633, 4689, -1, -31, Brushes.Purple);
+		}
+		
+		
+		public enum Frequency {
+			M,
+			FiveD,
+			W
+		}
+		
+		
+		public class PriceInfo{
+			public PriceInfo(string plotName, double low, double high, int startBar, int endBar, Brush color){
+				this.PlotName = plotName;
+				this.Low= low;
+				this.High = high;
+				this.StartBar = startBar;
+				this.EndBar = endBar;
+				this.Color = color;
+			}
+			public string PlotName {get;set;}
+			public double Low {get;set;}
+			public double High {get;set;}
+			public int StartBar {get;set;}
+			public int EndBar {get;set;}
+			public Brush Color {get;set;}
+		} 
+		
+		private void DrawLines(string plotName, double low, double high, int startBar, int endBar, Brush color) {
+			List<Level> levels = Levels;
+			foreach(Level l in levels) {
+				double range = high-low;
+				double y = low + (range * l.Value/100);
+				DrawTextLine(plotName, l.Name,startBar,endBar,color,l.Style,y);
+			}
+		}
+		
+		private void DrawTextLine(string plotName, string name,int startBar, int endBar, Brush color, DashStyleHelper style, double line_y){
+			NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Courier New", 15){Bold = true};
+ 
+            Draw.Text(this, plotName+"_text_"+name, false, name, endBar + 3, line_y + 2.5, 0, color, myFont, TextAlignment.Right, null, null, 1);
+				//Draw.Text(this, plotName+"_text_"+name, name, endBar-2, line_y, color);
+			Draw.Line(this, plotName+"_line_"+name, false, startBar, line_y, endBar, line_y, color, style, 2);
+		}
+//		private List<PriceLevel> GetPriceLevels(Brush brush){
+//			List<PriceLevel> plList = new List<PriceLevel>();
+//			foreach(double l in Levels){
+//				PriceLevel pl = new PriceLevel();
+//				pl.Value=l;
+//				pl.Name = "R1";
+//				Stroke s = new Stroke(brush,2);
+//		    	pl.Stroke = s;
+//				plList.Add(pl);
+//			}
+//			return plList;
+//		}
+		
+		
+		
+		
+		private static List<Level> Levels {
+			get {
+				return new List<Level>{
+					new Level(1108 , DashStyleHelper.Solid , "R5"),
+			        new Level(685 , DashStyleHelper.Solid , "R4"),
+			        new Level(423 , DashStyleHelper.Solid , "R3"),
+			        new Level(261.8 , DashStyleHelper.Solid , "R2"),
+			        new Level(161.8 , DashStyleHelper.Solid , "R1"),
+			        new Level(100 , DashStyleHelper.Solid , "High"),
+			        new Level(50 , DashStyleHelper.Dot , "Mid"),
+			        new Level(0 , DashStyleHelper.Solid , "Low"),
+			        new Level(-61.8 , DashStyleHelper.Solid , "S1"),
+			        new Level(-161.8 , DashStyleHelper.Solid , "S2"),
+			        new Level(-323 , DashStyleHelper.Solid , "S3"),
+			        new Level(-585 , DashStyleHelper.Solid , "S4"),
+			        new Level(-1008 , DashStyleHelper.Solid , "S5")
+				};
+			}
+		}
+		
+		private class Level {
+			public Level(double value,DashStyleHelper style, string name){
+				this.Value = value;
+				this.Style = style;
+				this.Name = name;
+			}
+			public double Value {get;set;}
+			public DashStyleHelper Style {get;set;}
+			public string Name {get;set;}
+		}
+		
+//		private List<double> Levels {
+//			get {
+//				return new List<double>{1108
+//                ,685
+//                ,423
+//                ,261.8
+//                ,161.8
+//                ,100
+//                ,50
+//                ,0
+//                ,-61.8
+//                ,-161.8
+//                ,-323
+//                ,-585
+//                ,-1008};
+//			}
+//		}
+		
+		
+
+
+	}
+}
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private DS.test1[] cachetest1;
+		public DS.test1 test1(bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			return test1(Input, isLoadWeekly, isLoadMonthly, isLoadFiveDay);
+		}
+
+		public DS.test1 test1(ISeries<double> input, bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			if (cachetest1 != null)
+				for (int idx = 0; idx < cachetest1.Length; idx++)
+					if (cachetest1[idx] != null && cachetest1[idx].IsLoadWeekly == isLoadWeekly && cachetest1[idx].IsLoadMonthly == isLoadMonthly && cachetest1[idx].IsLoadFiveDay == isLoadFiveDay && cachetest1[idx].EqualsInput(input))
+						return cachetest1[idx];
+			return CacheIndicator<DS.test1>(new DS.test1(){ IsLoadWeekly = isLoadWeekly, IsLoadMonthly = isLoadMonthly, IsLoadFiveDay = isLoadFiveDay }, input, ref cachetest1);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.DS.test1 test1(bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			return indicator.test1(Input, isLoadWeekly, isLoadMonthly, isLoadFiveDay);
+		}
+
+		public Indicators.DS.test1 test1(ISeries<double> input , bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			return indicator.test1(input, isLoadWeekly, isLoadMonthly, isLoadFiveDay);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.DS.test1 test1(bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			return indicator.test1(Input, isLoadWeekly, isLoadMonthly, isLoadFiveDay);
+		}
+
+		public Indicators.DS.test1 test1(ISeries<double> input , bool isLoadWeekly, bool isLoadMonthly, bool isLoadFiveDay)
+		{
+			return indicator.test1(input, isLoadWeekly, isLoadMonthly, isLoadFiveDay);
+		}
+	}
+}
+
+#endregion
