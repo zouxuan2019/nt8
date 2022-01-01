@@ -132,16 +132,17 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 					break;
 			}
 			if(info!=null){
-				DrawLines(info.PlotName, info.Low, info.High, info.StartBar, info.EndBar,info.Color);
+				DrawLines(info.PlotName, info.Low, info.High, info.StartTime, info.EndTime,info.Color);
 			}
 		}
 		
 		private PriceInfo GetWeeklyPriceInfo(){
-			Log("CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
+			string frequency = Frequency.W.ToString() ;
+			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
 			DateTime firstBarTime = Bars.GetTime(CurrentBar);
-			Log("CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
+			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
 			if(firstBarTime.DayOfWeek == DayOfWeek.Monday && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
-				try {
+			try {
 						
 			//			DateTime test = Bars.GetTime(-1);
 			//			Log("CurrentBar:" + CurrentBar+ " -ChartBars.ToIndex: " + ChartBars.ToIndex , LogLevel.Information);
@@ -149,25 +150,95 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 						KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
 						
 						int current = 0;
-					    int numOfBar = indexes.Value-indexes.Key + 1;
+					    int numOfBar = indexes.Value - indexes.Key + 1;
 						double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
 						double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
-						Log("CurrentBar:" + CurrentBar +" Min of Last Week: " + min + "Max Last Week: "+ max, LogLevel.Information);
+						Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last Week: " + min + "Max Last Week: "+ max, LogLevel.Information);
 						
 	//				    KeyValuePair<int,int> indexes2= GetBarIndexRangeByTimeRange(dateRange.Key,dateRange.Value);
 	//					double min2 = MIN(Low, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
 	//					double max2 = MAX(High, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
 	//					Log("CurrentBar2:" + CurrentBar +" Min of Last Week: " + min2 + "Max Last Week: "+ max2, LogLevel.Information);
-					return new PriceInfo (Frequency.W.ToString() + GetWeekOfYear(firstBarTime),  min, max, 0, -(numOfBar-1), Brushes.SteelBlue);
+					KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
+					return new PriceInfo (Frequency.W.ToString() + GetWeekOfYear(firstBarTime),  min, max, thisWeekRange.Key, thisWeekRange.Value, Brushes.SteelBlue);
 				} catch(IndexOutOfRangeException ex){
-					Log("CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
 					return null;
 				}catch(Exception ex){
-					Log("CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
+					Log("Frequency:" + frequency +  "CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
 					return null;
 				}
 			}
 		return null;
+		}
+		
+		private PriceInfo Get5DPriceInfo(){
+//			KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
+//			return new PriceInfo(Frequency.FiveD.ToString(), 4600, 4678, thisWeekRange.Key, thisWeekRange.Value,  Brushes.Orange);
+			string frequency = Frequency.FiveD.ToString();
+			
+			Log("Frequency:" + frequency +" CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
+			Log("Frequency:" + frequency + " Current day: " + firstBarTime.Day , LogLevel.Information);
+			if(IsFirstTradingOfMonth(firstBarTime) && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
+			try {
+						
+					KeyValuePair<DateTime,DateTime> dateRange = GetPreviousMonthLast5DStartEndDate(firstBarTime);
+					KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
+					
+					int current = 0;
+				    int numOfBar = indexes.Value - indexes.Key + 1;
+					double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
+					double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last 5 Days of Last Month: " + min + "Max Last 5 Days of Last Month: "+ max, LogLevel.Information);
+					
+				   KeyValuePair<DateTime,DateTime> thisMonthRange = GetCurrentMonthRange();
+					return new PriceInfo (frequency + firstBarTime.Month,  min, max, thisMonthRange.Key, thisMonthRange.Value, Brushes.Orange);
+				} catch(IndexOutOfRangeException ex){
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
+					return null;
+				}catch(Exception ex){
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
+					return null;
+				}
+			}
+		   return null;
+		}
+		
+		private PriceInfo GetMonthlyPriceInfo(){
+//			KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
+//			return new PriceInfo( Frequency.M.ToString(),  4633, 4689, thisWeekRange.Key, thisWeekRange.Value, Brushes.Purple);
+			
+			string frequency = Frequency.M.ToString();
+			
+			Log("Frequency:" + frequency +" CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
+			Log("Frequency:" + frequency + " Current day: " + firstBarTime.Day , LogLevel.Information);
+			if(IsFirstTradingOfMonth(firstBarTime) && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
+			try {
+						
+					KeyValuePair<DateTime,DateTime> dateRange = GetPreviousMonthLast5DStartEndDate(firstBarTime);
+					KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
+					
+					int current = 0;
+				    int numOfBar = indexes.Value - indexes.Key + 1;
+					double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
+					double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last 5 Days of Last Month: " + min + "Max Last 5 Days of Last Month: "+ max, LogLevel.Information);
+					
+				   KeyValuePair<DateTime,DateTime> thisMonthRange = GetCurrentMonthRange();
+					return new PriceInfo (frequency + firstBarTime.Month,  min, max, thisMonthRange.Key, thisMonthRange.Value, Brushes.Purple);
+				} catch(IndexOutOfRangeException ex){
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
+					return null;
+				}catch(Exception ex){
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
+					return null;
+				}
+			}
+		   return null;
 		}
 		
 		private string GetWeekOfYear(DateTime dt){
@@ -218,34 +289,86 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			Log("CurrentBar:" + CurrentBar+ " Current Datetime: " + currentDateTime , LogLevel.Information);
 			
 			DateTime lastMonday = currentDateTime.AddDays(-(dw+6));
+			DateTime lastFriday = lastMonday.AddDays(4);
 			DateTime nextMonday = lastMonday.AddDays(7);
-			DateTime lastWeekBegin = new DateTime(lastMonday.Year, lastMonday.Month, lastMonday.Day, 0, 0, 0);
+			DateTime lastWeekBegin = new DateTime(lastFriday.Year, lastFriday.Month, lastFriday.Day, 0, 0, 0);
 			DateTime lastWeekEnd = new DateTime(nextMonday.Year, nextMonday.Month, nextMonday.Day, 0, 0, 0);
 			Log("CurrentBar:" + CurrentBar+ " lastWeekBegin: " + lastWeekBegin + "lastWeekEnd: "+lastWeekEnd, LogLevel.Information);
 			return new KeyValuePair<DateTime,DateTime>(lastWeekBegin,lastWeekEnd);
 		}
 		
+		private KeyValuePair<DateTime,DateTime> GetPreviousMonthLast5DStartEndDate(DateTime currentDateTime){
+			Log("CurrentBar:" + CurrentBar+ " Current Datetime: " + currentDateTime , LogLevel.Information);
+			
+			DateTime firstDayOfCurrentMonth = new DateTime(currentDateTime.Year, currentDateTime.Month,1,0,0,0);
+			DateTime firstDayOfLast5DOfLastMonth = DateTime.Now;
+			DateTime lastDayOfLast5DOfLastMonth = firstDayOfCurrentMonth.DayOfWeek == DayOfWeek.Sunday? firstDayOfCurrentMonth.AddDays(1):firstDayOfCurrentMonth;
+			int i = 0 ;
+			while(i<=5){
+				DateTime dt = firstDayOfCurrentMonth.AddDays(-1);
+				if(dt.DayOfWeek!=DayOfWeek.Sunday){
+					i++;
+				}
+				if(i==5){
+					firstDayOfLast5DOfLastMonth = dt;
+				}
+			}
+				
+			Log("CurrentBar:" + CurrentBar+ " lastMonth5DBegin: " + firstDayOfLast5DOfLastMonth + "lastMonth5DEnd: "+lastDayOfLast5DOfLastMonth, LogLevel.Information);
+			return new KeyValuePair<DateTime,DateTime>(firstDayOfLast5DOfLastMonth,lastDayOfLast5DOfLastMonth);
+	}
+		
+		private KeyValuePair<DateTime,DateTime> GetPreviousMonthLastStartEndDate(DateTime currentDateTime){
+			Log("CurrentBar:" + CurrentBar+ " Current Datetime: " + currentDateTime , LogLevel.Information);
+			
+			DateTime firstDayOfCurrentMonth = new DateTime(currentDateTime.Year, currentDateTime.Month,1,0,0,0);
+			DateTime firstDayOfLastMonth = firstDayOfCurrentMonth.AddMonths(-1);
+			DateTime lastDayOfLastMonth = firstDayOfCurrentMonth.DayOfWeek == DayOfWeek.Sunday? firstDayOfCurrentMonth.AddDays(1):firstDayOfCurrentMonth;
+			firstDayOfLastMonth = firstDayOfLastMonth.DayOfWeek == DayOfWeek.Sunday? firstDayOfLastMonth.AddDays(1):firstDayOfLastMonth;
+				
+			Log("CurrentBar:" + CurrentBar+ " lastMonthBegin: " + firstDayOfLastMonth + "lastMonthEnd: "+lastDayOfLastMonth, LogLevel.Information);
+			return new KeyValuePair<DateTime,DateTime>(firstDayOfLastMonth,lastDayOfLastMonth);
+	}
+		
 		private KeyValuePair<int,int> GetBarIndexByDateTime(KeyValuePair<DateTime,DateTime> dateRange){
 			int beginIndex = Bars.GetBar(dateRange.Key);
-			int endIndex = Bars.GetBar(dateRange.Value);
+			int endIndex = Bars.GetBar(dateRange.Value)-1;
 			if(endIndex < 0) {
 				throw new IndexOutOfRangeException(" Chart out of index");
 			}
 			DateTime t1 = Bars.GetTime(beginIndex);
-			DateTime t2 = Bars.GetTime(endIndex-1);
+			DateTime t2 = Bars.GetTime(endIndex);
 			Log("CurrentBar: "+CurrentBar+" Last Week Begin Index: " + beginIndex + "Last Week End index: "+endIndex+" Last Week Begin Index DateTime: " + t1 + " Last Week End index DateTime: " + t2, LogLevel.Information);
 			return new KeyValuePair<int,int>(beginIndex,endIndex);
 		}
 		
-		
-		private PriceInfo Get5DPriceInfo(){
-			return new PriceInfo(Frequency.FiveD.ToString(), 4600, 4678, -1, -31,  Brushes.Orange);
+		private KeyValuePair<DateTime,DateTime> GetCurrentWeekRange(){
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			int dw = (int)firstBarTime.DayOfWeek;
+			DateTime thisMonday = firstBarTime.AddDays(-dw+1);
+			DateTime nextMonday = thisMonday.AddDays(7);
+			DateTime thisWeekBegin = new DateTime(thisMonday.Year, thisMonday.Month, thisMonday.Day, 0, 0, 0);
+			DateTime thisWeekEnd = new DateTime(nextMonday.Year, nextMonday.Month, nextMonday.Day, 0, 0, 0);
+			return new KeyValuePair<DateTime,DateTime>(thisWeekBegin,thisWeekEnd);
 		}
 		
-		private PriceInfo GetMonthlyPriceInfo(){
-			return new PriceInfo( Frequency.M.ToString(),  4633, 4689, -1, -31, Brushes.Purple);
+		private KeyValuePair<DateTime,DateTime> GetCurrentMonthRange(){
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			DateTime thisMonthBegin = new DateTime(firstBarTime.Year, firstBarTime.Month, 1, 0, 0, 0);
+			DateTime thisMonthEnd= thisMonthBegin.AddMonths(1);
+			return new KeyValuePair<DateTime,DateTime>(thisMonthBegin,thisMonthEnd);
 		}
 		
+		private bool IsFirstTradingOfMonth(DateTime dt){
+			if (dt.Day == 1 && dt.DayOfWeek!= DayOfWeek.Sunday){
+				return true;
+			}
+			if(dt.Day == 2 && dt.DayOfWeek== DayOfWeek.Monday){
+				return true;
+			}
+			return false;
+		}
+
 		
 		public enum Frequency {
 			M,
@@ -255,19 +378,19 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 		
 		
 		public class PriceInfo{
-			public PriceInfo(string plotName, double low, double high, int startBar, int endBar, Brush color){
+			public PriceInfo(string plotName, double low, double high, DateTime startTime, DateTime endTime, Brush color){
 				this.PlotName = plotName;
 				this.Low= low;
 				this.High = high;
-				this.StartBar = startBar;
-				this.EndBar = endBar;
+				this.StartTime = startTime;
+				this.EndTime = endTime;
 				this.Color = color;
 			}
 			public string PlotName {get;set;}
 			public double Low {get;set;}
 			public double High {get;set;}
-			public int StartBar {get;set;}
-			public int EndBar {get;set;}
+			public DateTime StartTime {get;set;}
+			public DateTime EndTime {get;set;}
 			public Brush Color {get;set;}
 		} 
 		
@@ -280,12 +403,28 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			}
 		}
 		
+		private void DrawLines(string plotName, double low, double high, DateTime startTime, DateTime endTime, Brush color) {
+			List<Level> levels = Levels;
+			foreach(Level l in levels) {
+				double range = high-low;
+				double y = low + (range * l.Value/100);
+				DrawTextLine(plotName, l.Name,startTime,endTime,color,l.Style,y);
+			}
+		}
+		
 		private void DrawTextLine(string plotName, string name,int startBar, int endBar, Brush color, DashStyleHelper style, double line_y){
 			NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Courier New", 15){Bold = true};
  
             Draw.Text(this, plotName+"_text_"+name, false, name, endBar + 3, line_y + 2.5, 0, color, myFont, TextAlignment.Right, null, null, 1);
 				//Draw.Text(this, plotName+"_text_"+name, name, endBar-2, line_y, color);
 			Draw.Line(this, plotName+"_line_"+name, false, startBar, line_y, endBar, line_y, color, style, 2);
+		}
+		
+		private void DrawTextLine(string plotName, string name,DateTime startTime, DateTime endTime, Brush color, DashStyleHelper style, double line_y){
+			NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Courier New", 15){Bold = true};
+			
+			Draw.Text(this, plotName+"_text_"+name, false, name, endTime, line_y + 2.5, 0, color, myFont, TextAlignment.Right, null, null, 1);
+			Draw.Line(this, plotName+"_line_"+name, false, startTime, line_y,  endTime, line_y, color, style, 2);
 		}
 //		private List<PriceLevel> GetPriceLevels(Brush brush){
 //			List<PriceLevel> plList = new List<PriceLevel>();
