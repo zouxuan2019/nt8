@@ -71,6 +71,7 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 		public bool IsLoadFiveDay
 		{ get; set; }
 		#endregion
+		
 		protected override void OnBarUpdate()
 		{
 			//Add your custom indicator logic here.
@@ -94,14 +95,18 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 //			DrawLines("M", 4633, 4689, -1, -31,Brushes.Purple);
 //			Log("2021-01-01 is the "+GetWeekOfYear(new DateTime(2021,1,1))+" week of year", LogLevel.Information);
 //			Log("2021-01-10 is the "+GetWeekOfYear(new DateTime(2021,1,10))+" week of year", LogLevel.Information);
-			if(IsLoadWeekly){
-				DrawLinesByFrequency(Frequency.W);
-			}
-			if(IsLoadFiveDay){
-				DrawLinesByFrequency(Frequency.FiveD);
-			}
-			if(IsLoadMonthly){
-				DrawLinesByFrequency(Frequency.M);
+			try{
+				if(IsLoadWeekly){
+					DrawLinesByFrequency(Frequency.W);
+				}
+				if(IsLoadFiveDay){
+					DrawLinesByFrequency(Frequency.FiveD);
+				}
+				if(IsLoadMonthly){
+					DrawLinesByFrequency(Frequency.M);
+				}
+			} catch(Exception ex){
+				Log("Error occurred:" + ex.Message, LogLevel.Error);
 			}
 			
 		}
@@ -141,33 +146,33 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar + " PeriodType:" + BarsPeriod.Value + BarsPeriod.BarsPeriodType, LogLevel.Information);
 			DateTime firstBarTime = Bars.GetTime(CurrentBar);
 			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
-			if(firstBarTime.DayOfWeek == DayOfWeek.Monday && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
-			try {
-						
-			//			DateTime test = Bars.GetTime(-1);
-			//			Log("CurrentBar:" + CurrentBar+ " -ChartBars.ToIndex: " + ChartBars.ToIndex , LogLevel.Information);
-						KeyValuePair<DateTime,DateTime> dateRange = GetPreviousWeekStartEndDate(firstBarTime);
-						KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
-						
-						int current = 0;
-					    int numOfBar = indexes.Value - indexes.Key + 1;
-						double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
-						double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
-						Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last Week: " + min + "Max Last Week: "+ max, LogLevel.Information);
-						
-	//				    KeyValuePair<int,int> indexes2= GetBarIndexRangeByTimeRange(dateRange.Key,dateRange.Value);
-	//					double min2 = MIN(Low, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
-	//					double max2 = MAX(High, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
-	//					Log("CurrentBar2:" + CurrentBar +" Min of Last Week: " + min2 + "Max Last Week: "+ max2, LogLevel.Information);
-					KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
-					return new PriceInfo (Frequency.W.ToString() + GetWeekOfYear(firstBarTime),  min, max, thisWeekRange.Key, thisWeekRange.Value, Brushes.SteelBlue);
-				} catch(IndexOutOfRangeException ex){
-					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
-					return null;
-				}catch(Exception ex){
-					Log("Frequency:" + frequency +  "CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
-					return null;
-				}
+			if(IsFirstTradingOfWeek(firstBarTime) && IsFirstTradingCandleOfDay()) {
+				try {
+							
+				//			DateTime test = Bars.GetTime(-1);
+				//			Log("CurrentBar:" + CurrentBar+ " -ChartBars.ToIndex: " + ChartBars.ToIndex , LogLevel.Information);
+							KeyValuePair<DateTime,DateTime> dateRange = GetPreviousWeekStartEndDate(firstBarTime);
+							KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
+							
+							int current = 0;
+						    int numOfBar = indexes.Value - indexes.Key + 1;
+							double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
+							double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
+							Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last Week: " + min + "Max Last Week: "+ max, LogLevel.Information);
+							
+		//				    KeyValuePair<int,int> indexes2= GetBarIndexRangeByTimeRange(dateRange.Key,dateRange.Value);
+		//					double min2 = MIN(Low, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
+		//					double max2 = MAX(High, indexes2.Value-indexes2.Key+1 )[indexes2.Value];
+		//					Log("CurrentBar2:" + CurrentBar +" Min of Last Week: " + min2 + "Max Last Week: "+ max2, LogLevel.Information);
+						KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
+						return new PriceInfo (Frequency.W.ToString() + GetWeekOfYear(firstBarTime),  min, max, thisWeekRange.Key, thisWeekRange.Value, Brushes.SteelBlue);
+					} catch(IndexOutOfRangeException ex){
+						Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
+						return null;
+					}catch(Exception ex){
+						Log("Frequency:" + frequency +  "CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
+						return null;
+					}
 			}
 		return null;
 		}
@@ -181,7 +186,7 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			DateTime firstBarTime = Bars.GetTime(CurrentBar);
 			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
 			Log("Frequency:" + frequency + " Current day: " + firstBarTime.Day , LogLevel.Information);
-			if(IsFirstTradingOfMonth(firstBarTime) && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
+			if(IsFirstTradingOfMonth(firstBarTime) && IsFirstTradingCandleOfDay() && IsCurrentMonth()) {
 			try {
 						
 					KeyValuePair<DateTime,DateTime> dateRange = GetPreviousMonthLast5DStartEndDate(firstBarTime);
@@ -206,6 +211,18 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 		   return null;
 		}
 		
+		private bool IsCurrentMonth(){
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			DateTime dtNow = DateTime.Now;
+			return firstBarTime.Year == dtNow.Year && firstBarTime.Month == dtNow.Month;
+		}
+		
+		private bool IsFirstTradingCandleOfDay() {
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			DateTime secondBarTime = Bars.GetTime(CurrentBar-1);
+			return firstBarTime.Day != secondBarTime.Day;
+		}
+		
 		private PriceInfo GetMonthlyPriceInfo(){
 //			KeyValuePair<DateTime,DateTime> thisWeekRange = GetCurrentWeekRange();
 //			return new PriceInfo( Frequency.M.ToString(),  4633, 4689, thisWeekRange.Key, thisWeekRange.Value, Brushes.Purple);
@@ -216,24 +233,24 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			DateTime firstBarTime = Bars.GetTime(CurrentBar);
 			Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar+ " Current DateTime " + firstBarTime , LogLevel.Information);
 			Log("Frequency:" + frequency + " Current day: " + firstBarTime.Day , LogLevel.Information);
-			if(IsFirstTradingOfMonth(firstBarTime) && (firstBarTime == new DateTime(firstBarTime.Year,firstBarTime.Month, firstBarTime.Day, 8, 0, 0))) {
+			if(IsFirstTradingOfMonth(firstBarTime) && IsFirstTradingCandleOfDay() && IsCurrentMonth()) {
 			try {
 						
-					KeyValuePair<DateTime,DateTime> dateRange = GetPreviousMonthLast5DStartEndDate(firstBarTime);
+					KeyValuePair<DateTime,DateTime> dateRange = GetPreviousMonthLastStartEndDate(firstBarTime);
 					KeyValuePair<int,int> indexes= GetBarIndexByDateTime(dateRange);
 					
 					int current = 0;
 				    int numOfBar = indexes.Value - indexes.Key + 1;
 					double min = MIN(Low, numOfBar )[CurrentBar-indexes.Value];
 					double max = MAX(High, numOfBar)[CurrentBar-indexes.Value];
-					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last 5 Days of Last Month: " + min + "Max Last 5 Days of Last Month: "+ max, LogLevel.Information);
+					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" Min of Last Month: " + min + "Max of Last Month: "+ max, LogLevel.Information);
 					
 				   KeyValuePair<DateTime,DateTime> thisMonthRange = GetCurrentMonthRange();
-					return new PriceInfo (frequency + firstBarTime.Month,  min, max, thisMonthRange.Key, thisMonthRange.Value, Brushes.Purple);
+					return new PriceInfo (frequency + firstBarTime.Month,  min, max, thisMonthRange.Key, thisMonthRange.Value, Brushes.Violet);
 				} catch(IndexOutOfRangeException ex){
 					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart",LogLevel.Information);
 					return null;
-				}catch(Exception ex){
+				} catch(Exception ex){
 					Log("Frequency:" + frequency + " CurrentBar:" + CurrentBar +" index out of chart2 ",LogLevel.Information);
 					return null;
 				}
@@ -301,21 +318,22 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			Log("CurrentBar:" + CurrentBar+ " Current Datetime: " + currentDateTime , LogLevel.Information);
 			
 			DateTime firstDayOfCurrentMonth = new DateTime(currentDateTime.Year, currentDateTime.Month,1,0,0,0);
-			DateTime firstDayOfLast5DOfLastMonth = DateTime.Now;
-			DateTime lastDayOfLast5DOfLastMonth = firstDayOfCurrentMonth.DayOfWeek == DayOfWeek.Sunday? firstDayOfCurrentMonth.AddDays(1):firstDayOfCurrentMonth;
+			DateTime lastMonth5DBegin = DateTime.Now;
+			DateTime lastMonth5DEnd = firstDayOfCurrentMonth.DayOfWeek == DayOfWeek.Sunday? firstDayOfCurrentMonth.AddDays(1):firstDayOfCurrentMonth;
 			int i = 0 ;
-			while(i<=5){
-				DateTime dt = firstDayOfCurrentMonth.AddDays(-1);
+			DateTime dt = firstDayOfCurrentMonth;
+			while(i <= 5){
+				dt = dt.AddDays(-1);
 				if(dt.DayOfWeek!=DayOfWeek.Sunday){
 					i++;
 				}
 				if(i==5){
-					firstDayOfLast5DOfLastMonth = dt;
+					lastMonth5DBegin = dt;
 				}
 			}
 				
-			Log("CurrentBar:" + CurrentBar+ " lastMonth5DBegin: " + firstDayOfLast5DOfLastMonth + "lastMonth5DEnd: "+lastDayOfLast5DOfLastMonth, LogLevel.Information);
-			return new KeyValuePair<DateTime,DateTime>(firstDayOfLast5DOfLastMonth,lastDayOfLast5DOfLastMonth);
+			Log("CurrentBar:" + CurrentBar+ " lastMonth5DBegin: " + lastMonth5DBegin + "lastMonth5DEnd: "+lastMonth5DEnd, LogLevel.Information);
+			return new KeyValuePair<DateTime,DateTime>(lastMonth5DBegin,lastMonth5DEnd);
 	}
 		
 		private KeyValuePair<DateTime,DateTime> GetPreviousMonthLastStartEndDate(DateTime currentDateTime){
@@ -356,17 +374,20 @@ namespace NinjaTrader.NinjaScript.Indicators.DS
 			DateTime firstBarTime = Bars.GetTime(CurrentBar);
 			DateTime thisMonthBegin = new DateTime(firstBarTime.Year, firstBarTime.Month, 1, 0, 0, 0);
 			DateTime thisMonthEnd= thisMonthBegin.AddMonths(1);
+			Log("CurrentBar:" + CurrentBar+ " thisMonthBegin: " + thisMonthBegin + " thisMonthEnd: "+thisMonthEnd, LogLevel.Information);
 			return new KeyValuePair<DateTime,DateTime>(thisMonthBegin,thisMonthEnd);
 		}
 		
 		private bool IsFirstTradingOfMonth(DateTime dt){
-			if (dt.Day == 1 && dt.DayOfWeek!= DayOfWeek.Sunday){
-				return true;
-			}
-			if(dt.Day == 2 && dt.DayOfWeek== DayOfWeek.Monday){
-				return true;
-			}
-			return false;
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			DateTime secondBarTime = Bars.GetTime(CurrentBar-1);
+			return firstBarTime.Month != secondBarTime.Month;
+		}
+		
+		private bool IsFirstTradingOfWeek(DateTime dt){
+			DateTime firstBarTime = Bars.GetTime(CurrentBar);
+			DateTime secondBarTime = Bars.GetTime(CurrentBar-1);
+			return GetWeekOfYear(firstBarTime) != GetWeekOfYear(secondBarTime);
 		}
 
 		
